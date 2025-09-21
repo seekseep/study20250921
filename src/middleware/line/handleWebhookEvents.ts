@@ -8,7 +8,9 @@ export async function handleWebhookEvents (events: WebhookEvent[]): Promise<AppR
     if (event.type === 'message' && event.message?.type === 'image') {
       const result = await saveImage({
         messageId: event.message.id,
-        userId: event.source.userId
+        userId: event.source.userId,
+        messageJson: JSON.stringify(event),
+        replyToken: event.replyToken,
       })
       if (result.error) return { success: false, message: result.error.message }
       return { success: true, message: 'Image saved successfully' }

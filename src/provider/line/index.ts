@@ -43,3 +43,11 @@ export async function getMessageFile (messageId: string): Promise<AppResult<Mess
 
   return succeed({ buffer, contentType, ext })
 }
+
+export async function replyMessage (replyToken: string, messages: messagingApi.Message | messagingApi.Message[]) {
+  const messagingApiClient = getMessagingApiClient()
+  return messagingApiClient.replyMessage({
+      replyToken,
+      messages: Array.isArray(messages) ? messages : [messages]
+  })
+}
