@@ -1,17 +1,13 @@
 import { NextRequest } from 'next/server'
 import crypto from 'node:crypto'
-import { createClient } from '@supabase/supabase-js'
+
+import { LINE_CHANNEL_ACCESS_TOKEN, LINE_CHANNEL_SECRET, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_URL } from '@/app/constants'
+import { supabase } from '@/lib/supabase'
+import BadRequestErrorResponse from '@/errors/BadRequestResponse'
+import InternalServerErrorResponse from '@/errors/InternalServerErrorResponse'
+import UnauthorizedResponse from '@/errors/UnauthorizedResponse'
 
 export const runtime = 'nodejs'
-
-// Create Supabase client (server-side) using Service Role key
-const SUPABASE_URL = process.env.SUPABASE_URL!
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
-
-// LINE credentials
-const LINE_CHANNEL_SECRET = process.env.LINE_CHANNEL_SECRET!
-const LINE_CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN!
 
 function verifyLineSignature(body: string, signature: string, channelSecret: string) {
   const mac = crypto.createHmac('sha256', channelSecret).update(body).digest('base64')
@@ -32,41 +28,26 @@ export async function POST(req: NextRequest) {
       crypto.createHmac('sha256', LINE_CHANNEL_SECRET).update(bodyText).digest('base64')
     )
     if (!signature) {
-      return new Response(JSON.stringify({ success: false, error: 'Missing x-line-signature header' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      })
+      return new BadRequestErrorResponse('Missing x-line-signature header')
     }
 
     if (!LINE_CHANNEL_SECRET || !LINE_CHANNEL_ACCESS_TOKEN) {
-      return new Response(JSON.stringify({ success: false, error: 'LINE env vars missing' }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    }
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      return new Response(JSON.stringify({ success: false, error: 'Supabase env vars missing' }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      })
+      return new InternalServerErrorResponse('LINE env vars missing')
     }
 
-    // Verify signature
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      return new InternalServerErrorResponse('Supabase env vars missing')
+    }
+
     if (!verifyLineSignature(bodyText, signature, LINE_CHANNEL_SECRET)) {
-      return new Response(JSON.stringify({ success: false, error: 'Invalid signature' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      })
+      return new UnauthorizedResponse('Invalid signature')
     }
 
     let body: { events?: any[] }
     try {
       body = JSON.parse(bodyText)
     } catch (e: any) {
-      return new Response(JSON.stringify({ success: false, error: 'Invalid JSON body' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      })
+      return new BadRequestErrorResponse('Invalid JSON body')
     }
     const events = body.events ?? []
     const results: any[] = []
