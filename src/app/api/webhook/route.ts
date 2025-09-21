@@ -6,28 +6,29 @@ import { validateSignature } from '@line/bot-sdk'
 import { handleError } from '@/middleware/handleError'
 import { parseRequestBody } from '@/middleware/parseRequest'
 import { saveImage } from '@/app/application/saveImage'
+import Unauthorized from '@/error/Unauthorized'
+import { getHealth } from '@/app/application/getHealth'
 
 export const runtime = 'nodejs'
 
 export async function POST(req: NextRequest) {
   try {
     const rawBody = await req.text()
-    const signature = req.headers.get('x-line-signature') ?? ''
+    const signature = req.headers.get('x-line-signature')
 
-    if (!validateSignature(rawBody, LINE_CHANNEL_SECRET, signature)) {
-     return new BadRequest('Invalid signature')
-    }
+    if (!signature) throw new BadRequest('Missing x-line-signature')
+
+    const valid = validateSignature(rawBody, LINE_CHANNEL_SECRET, signature)
+    if (!valid) throw new Unauthorized('Invalid signature')
+
 
     const events = await parseRequestBody(rawBody)
-    if (!events) {
-      return new BadRequest('Invalid request body')
-    }
+    if (!events) throw new BadRequest('Invalid request body')
+
 
     for (const event of events) {
-      if (event.type !== 'message' || event.message?.type !== 'image') {
-        console.log('Not an image message, skipping...')
-        continue
-      }
+      if (event.type !== 'message' || event.message?.type !== 'image') continue
+
 
       const messageId = event.message.id
       const userId = event.source.userId
@@ -46,7 +47,8 @@ export async function POST(req: NextRequest) {
 
 export async function GET() {
   try {
-    return new Response('OK', { status: 200 })
+    const health = await getHealth()
+    return new Response(health, { status: 200 })
   } catch (error: unknown) {
     return handleError(error)
   }
