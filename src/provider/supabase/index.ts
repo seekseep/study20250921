@@ -1,16 +1,19 @@
 import { createClient } from "@supabase/supabase-js";
 import { SUPABASE_SERVICE_ROLE_KEY, SUPABASE_URL } from "@/constants";
 import InternalServerError from "@/error/InternalServerError";
+import { AppResult, fail, succeed } from "@/util/result";
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
-export async function saveImageMeta (input: {
+export type SaveImageMetaInput = {
   messageId: string
   userId?: string
   fileName: string
   path: string,
   messageJson?: string
-}) {
+}
+
+export async function saveImageMeta(input: SaveImageMetaInput): Promise<AppResult<void>> {
   const { error: dbError } = await supabase.from('images').insert({
     line_user_id: input.userId,
     line_message_id: input.messageId,
@@ -19,16 +22,18 @@ export async function saveImageMeta (input: {
     meta_json: input.messageJson,
   })
 
-  if (dbError) {
-    throw new InternalServerError(`Supabase insert error: ${dbError.message}`, dbError)
-  }
+  if (dbError) return fail(new InternalServerError(`Supabase insert error: ${dbError.message}`, dbError))
+
+  return succeed(undefined)
 }
 
-export async function saveImageFile (input: {
+export type SaveImageFileInput = {
   fileName: string
   buffer: Buffer
   contentType: string
-}) {
+}
+
+export async function saveImageFile(input: SaveImageFileInput): Promise<AppResult<string>> {
   const path = `images/${input.fileName}`
 
   const { error: uploadError } = await supabase.storage.from('images')
@@ -37,9 +42,7 @@ export async function saveImageFile (input: {
       upsert: false,
     })
 
-  if (uploadError) {
-    throw new InternalServerError(`Supabase upload error: ${uploadError.message}`, uploadError)
-  }
+  if (uploadError) return fail(new InternalServerError(`Supabase upload error: ${uploadError.message}`, uploadError))
 
-  return path
+  return succeed(path)
 }

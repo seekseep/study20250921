@@ -1,55 +1,30 @@
 import { NextRequest } from 'next/server'
 
-import { LINE_CHANNEL_SECRET } from '@/constants'
-import BadRequest from '@/error/BadRequest'
-import { validateSignature } from '@line/bot-sdk'
 import { handleError } from '@/middleware/handleError'
-import { parseRequestBody } from '@/middleware/parseRequest'
-import { saveImage } from '@/app/application/saveImage'
-import Unauthorized from '@/error/Unauthorized'
+
 import { getHealth } from '@/app/application/getHealth'
+import { validateRequest } from '@/middleware/line/validateRequest'
+import { extractWebhookEvents } from '@/middleware/line/extractWebhookEvents'
+import { handleWebhookEvents } from '@/middleware/line/handleWebhookEvents'
 
 export const runtime = 'nodejs'
 
-export async function POST(req: NextRequest) {
-  try {
-    const rawBody = await req.text()
-    const signature = req.headers.get('x-line-signature')
+export async function POST(request: NextRequest) {
+  const validateRequestResult = await validateRequest(request)
+  if (validateRequestResult.error) return handleError(validateRequestResult.error)
 
-    if (!signature) throw new BadRequest('Missing x-line-signature')
+  const extractWebhookEventsResult = await extractWebhookEvents(request)
+  if (extractWebhookEventsResult.error) return handleError(extractWebhookEventsResult.error)
+  const webhookEvents = extractWebhookEventsResult.data
 
-    const valid = validateSignature(rawBody, LINE_CHANNEL_SECRET, signature)
-    if (!valid) throw new Unauthorized('Invalid signature')
+  const handleResult = await handleWebhookEvents(webhookEvents)
+  if (handleResult.error) return handleError(handleResult.error)
 
-
-    const events = await parseRequestBody(rawBody)
-    if (!events) throw new BadRequest('Invalid request body')
-
-
-    for (const event of events) {
-      if (event.type !== 'message' || event.message?.type !== 'image') continue
-
-
-      const messageId = event.message.id
-      const userId = event.source.userId
-
-      await saveImage({ messageId, userId })
-    }
-
-    return new Response(JSON.stringify({ success: true }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    })
-  } catch (error: unknown) {
-    return handleError(error)
-  }
+  return new Response(JSON.stringify(handleResult.data), { status: 200 })
 }
 
 export async function GET() {
-  try {
-    const health = await getHealth()
-    return new Response(health, { status: 200 })
-  } catch (error: unknown) {
-    return handleError(error)
-  }
+  const getHealthResult = await getHealth()
+  if (getHealthResult.error) return handleError(getHealthResult.error)
+  return new Response(getHealthResult.data, { status: 200 })
 }

@@ -1,3 +1,5 @@
-export async function getHealth() {
-  return 'OK'
+import { AppResult, succeed } from "@/util/result";
+
+export async function getHealth(): Promise<AppResult<string>> {
+  return succeed('OK');
 }

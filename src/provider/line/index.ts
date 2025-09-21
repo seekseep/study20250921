@@ -1,6 +1,9 @@
 import { LINE_CHANNEL_ACCESS_TOKEN } from '@/constants'
-import { streamToBuffer } from '@/middleware/streamToBuffer'
+import BadRequest from '@/error/BadRequest'
+import { AppResult, succeed } from '@/util/result'
+import { streamToBuffer } from '@/util/streamToBuffer'
 import { messagingApi } from '@line/bot-sdk'
+import { fail } from 'assert'
 import { fileTypeFromBuffer } from 'file-type'
 
 const {
@@ -20,17 +23,23 @@ export function getMessagingApiBlobClient () {
   })
 }
 
-export async function getMessageFile (messageId: string) {
+type MessageFile = {
+  buffer: Buffer<ArrayBufferLike>
+  contentType: string
+  ext: string
+}
+
+export async function getMessageFile (messageId: string): Promise<AppResult<MessageFile>> {
   const messagingApiBlobClient = getMessagingApiBlobClient()
   const stream = await messagingApiBlobClient.getMessageContent(messageId)
   const buffer = await streamToBuffer(stream)
 
   const fileType = await fileTypeFromBuffer(buffer)
   const contentType = fileType?.mime
-  if (!contentType) return null
+  if (!contentType) return fail(new BadRequest('Cannot determine file type'))
 
   const ext = fileType?.ext
-  if (!ext) return null
+  if (!ext) return fail(new BadRequest('Cannot determine file extension'))
 
-  return { buffer, contentType, ext }
+  return succeed({ buffer, contentType, ext })
 }
