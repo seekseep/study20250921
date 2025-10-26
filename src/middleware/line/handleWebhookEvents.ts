@@ -1,4 +1,4 @@
-import { saveImage } from "@/app/application/saveImage"
+import { saveImage } from "@/app/application/image/saveImage"
 import { AppResult, succeed } from "@/util/result"
 import { WebhookEvent } from "@line/bot-sdk"
 import { HandleResult } from "./types"

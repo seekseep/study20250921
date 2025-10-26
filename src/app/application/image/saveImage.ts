@@ -1,15 +1,9 @@
 import { getMessageFile, replyMessage } from "@/provider/line"
-import { saveImageFile, saveImageMeta } from "@/provider/supabase/index"
+import { putImageFile, createImage } from "@/repository/image"
 import { AppResult, succeed } from "@/util/result"
+import { SaveImageParameter } from "@/domain/value/image"
 
-export type SaveImageInput = {
-  messageId: string
-  userId?: string
-  messageJson?: string
-  replyToken?: string
-}
-
-export async function saveImage (input: SaveImageInput): Promise<AppResult<void>> {
+export async function saveImage (input: SaveImageParameter): Promise<AppResult<void>> {
  const getMessageFileResult = await getMessageFile(input.messageId)
   if (getMessageFileResult.error) return getMessageFileResult
 
@@ -18,22 +12,22 @@ export async function saveImage (input: SaveImageInput): Promise<AppResult<void>
   const now = Date.now()
   const fileName = `${now}_${input.messageId}.${ext}`
 
-  const saveImageFileResult = await saveImageFile({
+  const putImageFileResult = await putImageFile({
     buffer,
     contentType,
     fileName,
   })
-  if (saveImageFileResult.error) return saveImageFileResult
+  if (putImageFileResult.error) return putImageFileResult
 
-  const filePath = saveImageFileResult.data
-  const saveImageMetaResult = await saveImageMeta({
-    messageId: input.messageId,
-    userId: input.userId,
+  const filePath = putImageFileResult.data
+  const createImageResult = await createImage({
     fileName: fileName,
     path: filePath,
-    messageJson: input.messageJson
+    lineUserId: input.userId,
+    lineMessageId: input.messageId,
+    metaJson: input.messageJson
   })
-  if (saveImageMetaResult.error) return saveImageMetaResult
+  if (createImageResult.error) return createImageResult
 
   if (input.replyToken) {
     await replyMessage(input.replyToken, {

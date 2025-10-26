@@ -1,0 +1,12 @@
+{
+  "claude.mcpServers": {
+    "postgres": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://postgres:k2xbStBWowgaf8Sk@db.oxmckhmmdzoazuomggve.supabase.co:5432/postgres"
+      ]
+    }
+  }
+}
