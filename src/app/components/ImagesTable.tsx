@@ -6,7 +6,9 @@ import { Image } from "@/domain/entity/image"
 import { Table } from "@/components/Table"
 import { FiUser, FiMessageSquare, FiFile } from "react-icons/fi"
 
-const columnHelper = createColumnHelper<Image>()
+type ImageWithUrl = Image & { url?: string }
+
+const columnHelper = createColumnHelper<ImageWithUrl>()
 
 const TRUNCATE_LENGTH = 8
 
@@ -51,19 +53,25 @@ const columns = [
     header: 'ファイル名',
     cell: info => {
       const image = info.row.original
+      const imageUrl = image.url
+
       return (
         <div className="flex items-center gap-2 relative group">
           <FiFile className="text-gray-500 flex-shrink-0" />
           <span className="font-mono text-xs">{info.getValue()}</span>
-          {image.url && (
-            <div className="absolute left-0 top-full mt-2 hidden group-hover:block z-10 pointer-events-none">
+          <div className="absolute left-0 top-full mt-2 hidden group-hover:block z-10 pointer-events-none">
+            {imageUrl ? (
               <img
-                src={image.url}
+                src={imageUrl}
                 alt={info.getValue() || ''}
                 className="max-w-xs max-h-48 object-contain shadow-lg rounded border border-gray-200 bg-white"
               />
-            </div>
-          )}
+            ) : (
+              <div className="max-w-xs px-3 py-2 bg-white shadow-lg rounded border border-gray-200 text-sm text-gray-500">
+                画像なし
+              </div>
+            )}
+          </div>
         </div>
       )
     },
@@ -82,7 +90,7 @@ const columns = [
   }),
 ]
 
-export function ImagesTable({ data }: { data: Image[] }) {
+export function ImagesTable({ data }: { data: ImageWithUrl[] }) {
   const table = useReactTable({
     data,
     columns,

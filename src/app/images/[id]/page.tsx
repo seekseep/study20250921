@@ -10,8 +10,9 @@ import { ImageSummary } from "./components/ImageSummary"
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
-export default async function ImageDetailPage({ params }: { params: { id: string } }) {
-  const result = await getImageByIdAction({ id: params.id })
+export default async function ImageDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const result = await getImageByIdAction({ id })
 
   if (result.error) {
     return <div>Error: {result.error.message}</div>
