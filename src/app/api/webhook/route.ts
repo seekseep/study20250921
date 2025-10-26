@@ -10,15 +10,22 @@ import { handleWebhookEvents } from '@/middleware/line/handleWebhookEvents'
 export const runtime = 'nodejs'
 
 export async function POST(request: NextRequest) {
+  console.log('Received webhook POST request')
   const validateRequestResult = await validateRequest(request)
   if (validateRequestResult.error) return handleError(validateRequestResult.error)
+
+  console.log('Request validated successfully')
 
   const extractWebhookEventsResult = await extractWebhookEvents(request)
   if (extractWebhookEventsResult.error) return handleError(extractWebhookEventsResult.error)
   const webhookEvents = extractWebhookEventsResult.data
 
+  console.log('Extracted webhook events:', webhookEvents)
+
   const handleResult = await handleWebhookEvents(webhookEvents)
   if (handleResult.error) return handleError(handleResult.error)
+
+  console.log('Webhook events handled successfully')
 
   return new Response(JSON.stringify(handleResult.data), { status: 200 })
 }
