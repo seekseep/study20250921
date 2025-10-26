@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { FindImageByIdParameterSchema } from "@/domain/value/image";
-import { findImageById } from "@/app/application/image/findImageById";
+import { SummarizeImageParameterSchema } from "@/domain/value/image";
+import { summarizeImage } from "@/app/application/image/summarizeImage";
 import { handleError } from "@/middleware/handleError";
 import BadRequest from "@/error/BadRequest";
 
@@ -8,32 +8,24 @@ type Params = {
   params: Promise<{ id: string }>;
 };
 
-export async function GET(request: NextRequest, { params }: Params) {
+export async function POST(request: NextRequest, { params }: Params) {
   try {
     const { id } = await params;
 
-    const parseResult = FindImageByIdParameterSchema.safeParse({ id });
+    const parseResult = SummarizeImageParameterSchema.safeParse({ id });
 
     if (!parseResult.success) {
       throw new BadRequest(`Invalid request parameter: ${parseResult.error.message}`);
     }
 
-    const result = await findImageById(parseResult.data);
+    const result = await summarizeImage(parseResult.data);
 
     if (result.error) {
       throw result.error;
     }
 
-    if (!result.data) {
-      return NextResponse.json({
-        success: false,
-        error: "Image not found",
-      }, { status: 404 });
-    }
-
     return NextResponse.json({
       success: true,
-      data: result.data,
     });
   } catch (error) {
     return handleError(error);

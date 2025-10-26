@@ -1,8 +1,11 @@
 import { Image, ImageSchema } from "@/domain/entity/image";
 import { CreateImageParameter, DeleteImageParameter, FindImageByIdParameter, UpdateImageParameter, PutImageFileParameter, GetImageFileParameter, DeleteImageByIdParameter } from "@/domain/value/image";
 import { AppResult, fail, succeed } from "@/util/result";
-import { supabase } from "@/provider/supabase";
+import { createClient } from "@supabase/supabase-js";
+import { SUPABASE_SERVICE_ROLE_KEY, SUPABASE_URL } from "@/constants";
 import InternalServerError from "@/error/InternalServerError";
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 function convertRowToImage(row: any): AppResult<Image> {
   try {
@@ -12,13 +15,15 @@ function convertRowToImage(row: any): AppResult<Image> {
       path: row.path,
       lineUserId: row.line_user_id,
       lineMessageId: row.line_message_id,
-      metaJson: row.meta_json,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
+      metaJson: row.meta_json ? (typeof row.meta_json === 'string' ? row.meta_json : JSON.stringify(row.meta_json)) : null,
+      uploadedAt: row.uploaded_at,
+      summarizeStatus: row.summarize_status || 'idle',
+      summarizeResult: row.summarize_result,
     })
     return succeed(image)
   } catch (error) {
-    return fail(new InternalServerError(`Failed to parse image data`, error))
+    console.error('Failed to parse image data:', error, 'Row data:', row)
+    return fail(new InternalServerError(`Failed to parse image data: ${error instanceof Error ? error.message : String(error)}`, error))
   }
 }
 
@@ -66,7 +71,7 @@ export async function getAllImages(): Promise<AppResult<Image[]>> {
   const { data, error } = await supabase
     .from('images')
     .select()
-    .order('created_at', { ascending: false });
+    .order('uploaded_at', { ascending: false });
 
   if (error) {
     return fail(new InternalServerError(`Failed to get images: ${error.message}`, error));
@@ -153,4 +158,20 @@ export async function getImageFile(parameter: GetImageFileParameter): Promise<Ap
   if (error) return fail(new InternalServerError(`Failed to get image file: ${error.message}`, error))
 
   return succeed(data)
+}
+
+export async function updateImageSummarizeStatus(id: string, status: 'idle' | 'processing' | 'completed' | 'failed', result?: string): Promise<AppResult<void>> {
+  const { error } = await supabase
+    .from('images')
+    .update({
+      summarize_status: status,
+      summarize_result: result || null,
+    })
+    .eq('id', id);
+
+  if (error) {
+    return fail(new InternalServerError(`Failed to update summarize status: ${error.message}`, error));
+  }
+
+  return succeed(undefined);
 }

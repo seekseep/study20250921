@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 
 import { handleError } from '@/middleware/handleError'
 
-import { getHealth } from '@/app/application/getHealth'
+import { getHealth } from '@/application/getHealth'
 import { validateRequestAsJson } from '@/middleware/line/validateRequest'
 import { extractWebhookEvents } from '@/middleware/line/extractWebhookEvents'
 import { handleWebhookEvents } from '@/middleware/line/handleWebhookEvents'

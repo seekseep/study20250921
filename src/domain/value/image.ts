@@ -53,3 +53,8 @@ export const DeleteImageByIdParameterSchema = z.object({
   id: z.string().uuid(),
 })
 export type DeleteImageByIdParameter = z.infer<typeof DeleteImageByIdParameterSchema>;
+
+export const SummarizeImageParameterSchema = z.object({
+  id: z.string().uuid(),
+})
+export type SummarizeImageParameter = z.infer<typeof SummarizeImageParameterSchema>;
