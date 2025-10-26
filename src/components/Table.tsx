@@ -8,8 +8,8 @@ interface TableProps<TData> {
 
 export function Table<TData>({ table }: TableProps<TData>) {
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full border-collapse border border-gray-300">
+    <div>
+      <table className="w-full border-collapse border border-gray-300">
         <thead>
           {table.getHeaderGroups().map(headerGroup => (
             <tr key={headerGroup.id} className="bg-gray-100">
