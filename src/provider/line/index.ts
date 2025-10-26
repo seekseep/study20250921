@@ -1,9 +1,8 @@
 import { LINE_CHANNEL_ACCESS_TOKEN } from '@/constants'
 import BadRequest from '@/error/BadRequest'
-import { AppResult, succeed } from '@/util/result'
+import { AppResult, succeed, fail } from '@/util/result'
 import { streamToBuffer } from '@/util/streamToBuffer'
 import { messagingApi } from '@line/bot-sdk'
-import { fail } from 'assert'
 import { fileTypeFromBuffer } from 'file-type'
 
 const {
