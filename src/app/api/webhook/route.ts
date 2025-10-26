@@ -3,29 +3,23 @@ import { NextRequest } from 'next/server'
 import { handleError } from '@/middleware/handleError'
 
 import { getHealth } from '@/app/application/getHealth'
-import { validateRequest } from '@/middleware/line/validateRequest'
+import { validateRequest, validateRequestAsJson } from '@/middleware/line/validateRequest'
 import { extractWebhookEvents } from '@/middleware/line/extractWebhookEvents'
 import { handleWebhookEvents } from '@/middleware/line/handleWebhookEvents'
 
 export const runtime = 'nodejs'
 
 export async function POST(request: NextRequest) {
-  console.log('Received webhook POST request')
-  const validateRequestResult = await validateRequest(request)
+  const validateRequestResult = await validateRequestAsJson(request)
   if (validateRequestResult.error) return handleError(validateRequestResult.error)
+  const value = validateRequestResult.data
 
-  console.log('Request validated successfully')
-
-  const extractWebhookEventsResult = await extractWebhookEvents(request)
+  const extractWebhookEventsResult = await extractWebhookEvents(value)
   if (extractWebhookEventsResult.error) return handleError(extractWebhookEventsResult.error)
   const webhookEvents = extractWebhookEventsResult.data
 
-  console.log('Extracted webhook events:', webhookEvents)
-
   const handleResult = await handleWebhookEvents(webhookEvents)
   if (handleResult.error) return handleError(handleResult.error)
-
-  console.log('Webhook events handled successfully')
 
   return new Response(JSON.stringify(handleResult.data), { status: 200 })
 }
